@@ -1,2 +1,2 @@
-# ML_Sp21
-OMSCS Machine Learning Spring 2021
+# ml_fa21
+OMSCS Machine Learning Fall 2021
