@@ -87,8 +87,8 @@ def chooseEM(data, hi=10):
 # lda = LinearDiscriminantAnalysis()
 
 
-churn_data, churn_labels = utils.get_churn_data()
-stroke_data, stroke_labels = utils.get_stroke_data()
+churn_data, churn_labels = utils.getChurnData()
+stroke_data, stroke_labels = utils.getStrokeData()
 
 # chooseKMeans(churn_data)
 # chooseKMeans(stroke_data)

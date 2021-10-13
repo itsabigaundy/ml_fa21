@@ -1,41 +1,39 @@
+from typing import Tuple
+
 import numpy as np
 import pandas as pd
 from scipy import sparse
 from sklearn.preprocessing import LabelBinarizer, OrdinalEncoder
 
 
-def split_data(data : pd.DataFrame, train_percent : float) -> tuple:
-    if train_percent == 0:
-        return data, None
-    num_train = int(data.shape[0] * train_percent)
-    return data.iloc[:num_train,:], data.iloc[num_train:,:]
-
-def get_aussie_data(train_percent=0):
+def getAussieData(train_percent : float = 0) -> pd.DataFrame:
     df = pd.read_csv('datasets/aussieRain/weatherAUS.csv')
     df = df[df['Location'] == 'Albury'].drop(['Location'], axis=1)
 
     dates = OrdinalEncoder().fit_transform(df['Date'].to_numpy().reshape((-1, 1))).astype(int)
     df['Date'] = dates
 
-    return split_data(df, train_percent)
+    return df
 
-def get_sarcasm_data(train_percent=0):
+
+def getSarcasmData(train_percent : float = 0) -> pd.DataFrame:
     return pd.read_json('datasets/sarcasmHeadlines/Sarcasm_Headlines_Dataset.json', lines=True)
 
-def get_income_data():
+
+def getIncomeData() -> pd.DataFrame:
     return pd.read_csv('datasets/incomeEvaluation/income_evaluation.csv')
 
-def get_churn_data():
+
+def getChurnData() -> pd.DataFrame:
     df = pd.read_csv('datasets/churnModeling/Churn_Modeling.csv').drop(['RowNumber', 'CustomerId', 'Surname'], axis=1)
 
     df.loc[df['Gender'] == 'Female', 'Gender'] = 0
     df.loc[df['Gender'] == 'Male', 'Gender'] = 1
 
-    df = pd.concat([df, pd.get_dummies(df, prefix='loc', columns=['Geography',])], axis=1).drop(['Geography'], axis=1)
+    return pd.concat([df, pd.get_dummies(df, prefix='loc', columns=['Geography',])], axis=1).drop(['Geography'], axis=1)
 
-    return df.drop('Exited', axis=1), df['Exited']
 
-def get_stroke_data():
+def getStrokeData() -> Tuple[pd.DataFrame, pd.DataFrame]:
     df = pd.read_csv('datasets/strokePrediction/strokeData.csv').drop(['id'], axis=1)
 
     df = df[np.isfinite(df['bmi'])]
@@ -63,11 +61,21 @@ def get_stroke_data():
 
     return df.drop('stroke', axis=1), df['stroke']
 
-def get_cross_validation_data(dataset):
-    n = dataset.shape[0]
-    num_train = int(n * 9 / 10)
 
-    idxs = np.arange(n)
-    np.random.shuffle(idxs)
+def getTitanicData() -> Tuple[pd.DataFrame, pd.DataFrame]:
+    def read_csv(whichSet : str) -> pd.DataFrame:
+        # TODO: Expand Drop List
+        drop_list = ['PassengerId', 'Name']
+        return pd.read_csv('datasets/titanic/' + whichSet + '.csv').drop(drop_list, axis=1)
+    return read_csv('train'), read_csv('test')
 
-    return dataset.iloc[idxs[:num_train],:], dataset.iloc[idxs[num_train:],:]
+
+def getZooData() -> pd.DataFrame:
+    ret = pd.concat([pd.read_csv('datasets/zoo/zoo3.csv'), pd.read_csv('datasets/zoo/zoo2.csv')])
+    return ret.drop( [ 'animal_name', ], axis=1 )
+
+
+
+def getCreditRiskData() -> pd.DataFrame:
+    ret = pd.read_csv('datasets/creditRisk/customer_data.csv').drop( [ 'id', ], axis=1 )
+    return ret[pd.notna(ret['fea_2'])]
