@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import mlrose_hiive as rose
 import numpy as np
 
+
 def queens_max(state):
 
    # Initialize counter
@@ -21,6 +22,7 @@ def queens_max(state):
 
     return fitness_cnt
 
+
 fitness_funcs = [
     {
         'name' : 'Queens',
@@ -29,15 +31,15 @@ fitness_funcs = [
         'val'  : 8
     },
     {
-        'name' : 'Continuous Peaks',
+        'name' : 'Peaks',
         'func' : rose.ContinuousPeaks(),
-        'len'  : 100,
+        'len'  : 20,
         'val'  : 2
     },
     {
-        'name' : 'Flip Flop',
+        'name' : 'FF',
         'func' : rose.FlipFlop(),
-        'len'  : 1000,
+        'len'  : 50,
         'val'  : 2
     },
 ]
@@ -53,63 +55,78 @@ algos = [
         }
     },
     {
-        'name' : 'SA',
-        'algo' : rose.simulated_annealing,
+        'name' : 'GA',
+        'algo' : rose.genetic_alg,
         'kwargs' : { }
     },
     {
-        'name' : 'GA',
-        'algo' : rose.genetic_alg,
+        'name' : 'SA',
+        'algo' : rose.simulated_annealing,
         'kwargs' : { }
     },
     {
         'name' : 'MIMIC',
         'algo' : rose.mimic,
         'kwargs' : { }
-    }
+    },
 ]
 
 
 def get_filename(algo_name, fitness_name, suffix):
     tail = [suffix] if suffix else []
-    return '_'.join(['optimized', algo_name, fitness_name] + tail) + '.txt'
+    return 'optimization_results/' + '_'.join([ fitness_name, algo_name, ] + tail) + '.txt'
+
 
 def get_discrete_data(suffix=''):
     results = [[x['algo'](problem, curve=True, random_state=12345, **x['kwargs']) for problem in problems] for x in algos]
     for i, algo in enumerate(results):
         for j, problem in enumerate(algo):
             with open(get_filename(algos[i]['name'], fitness_funcs[j]['name'], suffix), 'w') as f:
-                np.savetxt(f, problem[0], delimiter=',')
+                np.savetxt(f, problem[0])
                 f.write(str(problem[1]) + '\n')
-                np.savetxt(f, problem[2], delimiter=',')
+                np.savetxt(f, problem[2])
 
-def get_discrete_graphs(suffix=''):
-    for algo in algos:
-        for func in fitness_funcs:
+
+def get_discrete_fitness(suffix=''):
+    for func in fitness_funcs:
+        for algo in algos:
             with open(get_filename(algo['name'], func['name'], suffix), 'r') as f:
-                best_state = np.loadtxt(f, delimiter=',', max_rows=func['len'])
+                best_state = np.loadtxt(f, max_rows=func['len'])
                 best_fitness = float(f.readline())
-                fitness_curve = np.loadtxt(f, delimiter=',')
+                fitness_curve = np.loadtxt(f)
 
-                plt.title(' '.join([algo['name'], 'Performance on', func['name']]))
-                fig, ax1 = plt.subplots()
+                plt.plot(fitness_curve[:,0], label=algo['name'])
 
-                color = 'red'
-                ax1.set_xlabel('Iteration')
-                ax1.set_ylabel('Fitness', color=color)
-                ax1.plot(fitness_curve[:,1], fitness_curve[:,0], color=color)
-                ax1.tick_params(axis='y', labelcolor=color)
+        tail = [suffix] if suffix else []
+        plt.xlabel('Number of Iterations')
+        plt.ylabel('Fitness')
+        plt.legend()
+        plt.savefig('optimization_results/' + '_'.join( [func['name']] + tail + ['fitness']) + '.png')
+        plt.clf()
 
-                # color = 'blue'
 
-                # ax2 = ax1.twinx()
-                # ax2.set_ylabel('# of Function Evaluations', color=color)
-                # ax2.plot(fitness_curve[:,1], color=color)
-                # ax2.tick_params(axis='y', labelcolor=color)
+def get_discrete_fitness_evals(suffix=''):
+    for func in fitness_funcs:
+        for algo in algos:
+            with open(get_filename(algo['name'], func['name'], suffix), 'r') as f:
+                best_state = np.loadtxt(f, max_rows=func['len'])
+                best_fitness = float(f.readline())
+                fitness_curve = np.loadtxt(f)
 
-                fig.tight_layout()
-                plt.savefig(get_filename(algo['name'], func['name'], suffix)[:-3] + 'png')
+                plt.plot(fitness_curve[:,1], label=algo['name'], alpha=0.7)
+
+        tail = [suffix] if suffix else []
+        plt.xlabel('Logarithmic Number of Iterations')
+        plt.ylabel('Logarithmic Number of Total Fitness Evaluations')
+        plt.yscale('log')
+        plt.xscale('log')
+        plt.legend()
+        plt.savefig('optimization_results/' + '_'.join( [func['name']] + tail + ['eval', 'count']) + '.png')
+        plt.clf()
 
 
 if __name__ == '__main__':
-    get_discrete_graphs(suffix='long')
+    suffix = ''
+    # get_discrete_data(suffix=suffix)
+    get_discrete_fitness(suffix=suffix)
+    get_discrete_fitness_evals(suffix=suffix)
