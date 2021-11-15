@@ -4,4 +4,4 @@ Clone the above github repository, create a virtual environment with Python 3.8.
 
 Run 'pip install -r requirements.txt' in the root directory.
 
-Run optimization.py
+Run unsupervised.py

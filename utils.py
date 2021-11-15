@@ -1,65 +1,20 @@
 from typing import Tuple
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
-from scipy import sparse
-from sklearn.preprocessing import LabelBinarizer, OrdinalEncoder
+from sklearn.preprocessing import OrdinalEncoder
 
 
-def getAussieData(train_percent : float = 0) -> pd.DataFrame:
-    df = pd.read_csv('datasets/aussieRain/weatherAUS.csv')
-    df = df[df['Location'] == 'Albury'].drop(['Location'], axis=1)
-
-    dates = OrdinalEncoder().fit_transform(df['Date'].to_numpy().reshape((-1, 1))).astype(int)
-    df['Date'] = dates
+def formatDateCol(df: pd.DataFrame, date_col: str, fmt: str) -> pd.DataFrame:
+    df[date_col] = [datetime.strptime(x, fmt) for x in df[date_col]]
+    df = df.sort_values(by=[date_col], ignore_index=True)
+    df[date_col] = [x - df[date_col][0] for x in df[date_col]]
+    df[date_col] = [x.total_seconds() for x in df[date_col]]
+    df[date_col] /= np.gcd.reduce(df[date_col].astype(int))
+    df = df.drop_duplicates(subset=[date_col], ignore_index=True)
 
     return df
-
-
-def getSarcasmData(train_percent : float = 0) -> pd.DataFrame:
-    return pd.read_json('datasets/sarcasmHeadlines/Sarcasm_Headlines_Dataset.json', lines=True)
-
-
-def getIncomeData() -> pd.DataFrame:
-    return pd.read_csv('datasets/incomeEvaluation/income_evaluation.csv')
-
-
-def getChurnData() -> pd.DataFrame:
-    df = pd.read_csv('datasets/churnModeling/Churn_Modeling.csv').drop(['RowNumber', 'CustomerId', 'Surname'], axis=1)
-
-    df.loc[df['Gender'] == 'Female', 'Gender'] = 0
-    df.loc[df['Gender'] == 'Male', 'Gender'] = 1
-
-    return pd.concat([df, pd.get_dummies(df, prefix='loc', columns=['Geography',])], axis=1).drop(['Geography'], axis=1)
-
-
-def getStrokeData() -> Tuple[pd.DataFrame, pd.DataFrame]:
-    df = pd.read_csv('datasets/strokePrediction/strokeData.csv').drop(['id'], axis=1)
-
-    df = df[np.isfinite(df['bmi'])]
-
-    df = df[df['gender'] != 'Other']
-    df.loc[df['gender'] == 'Female', 'gender'] = 0
-    df.loc[df['gender'] == 'Male', 'gender'] = 1
-
-    df.loc[df['ever_married'] == 'No', 'ever_married'] = 0
-    df.loc[df['ever_married'] == 'Yes', 'ever_married'] = 1
-
-    df.loc[df['work_type'] == 'children', 'work_type'] = 0
-    df.loc[df['work_type'] == 'Never_worked', 'work_type'] = 0
-    df.loc[df['work_type'] == 'Govt_job', 'work_type'] = 1
-    df.loc[df['work_type'] == 'Private', 'work_type'] = 1
-    df.loc[df['work_type'] == 'Self-employed', 'work_type'] = 1
-
-    df.loc[df['Residence_type'] == 'Rural', 'Residence_type'] = 0
-    df.loc[df['Residence_type'] == 'Urban', 'Residence_type'] = 1
-
-    df.loc[df['smoking_status'] == 'never smoked', 'smoking_status'] = 0
-    df.loc[df['smoking_status'] == 'Unknown', 'smoking_status'] = 1
-    df.loc[df['smoking_status'] == 'formerly smoked', 'smoking_status'] = 2
-    df.loc[df['smoking_status'] == 'smokes', 'smoking_status'] = 3
-
-    return df.drop('stroke', axis=1), df['stroke']
 
 
 def getTitanicData() -> Tuple[pd.DataFrame, pd.DataFrame]:
@@ -79,3 +34,34 @@ def getZooData() -> pd.DataFrame:
 def getCreditRiskData() -> pd.DataFrame:
     ret = pd.read_csv('datasets/creditRisk/customer_data.csv').drop( [ 'id', ], axis=1 )
     return ret[pd.notna(ret['fea_2'])]
+
+
+def getSzegedData() -> pd.DataFrame:
+    ret = pd.read_csv('datasets/szeged/weatherHistory.csv')
+    ret = ret.drop( [ 'Loud Cover', 'Daily Summary', 'Summary', ], axis=1 )
+
+    # convert dates to numeric format and normalize
+    ret['Formatted Date'] = [x[:19] + x[23:] for x in ret['Formatted Date']]
+    ret = formatDateCol(ret, 'Formatted Date', "%Y-%m-%d %H:%M:%S %z")
+
+    # convert precip type 
+    ret['Precip Type'] = ret['Precip Type'].replace(np.nan, 'clear')
+    enc = OrdinalEncoder(categories=[[ 'clear', 'rain', 'snow', ]])
+    ret['Precip Type'] = enc.fit_transform(ret['Precip Type'].values.reshape(-1, 1)).flatten()
+
+    return ret
+
+
+def getEpicuriousData() -> pd.DataFrame:
+    df = pd.read_csv('datasets/epicurious/epi_r.csv')[[
+        'rating',
+        'calories',
+        'protein',
+        'fat',
+        'sodium',
+        'healthy',
+    ]]
+
+    df = df.dropna()
+
+    return df
